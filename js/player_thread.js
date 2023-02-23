@@ -184,6 +184,10 @@
       const idx = this.playlist.findIndex((audio) => audio.id === id);
       this.play(idx);
     }
+	
+	downLoadById(data) {
+      this.downLoad(data);
+    }
 
     loadById(id) {
       const idx = this.playlist.findIndex((audio) => audio.id === id);
@@ -199,11 +203,46 @@
       this.load(idx);
 
       const data = this.playlist[this.index];
+	  
       if (!data.howl || !this._media_uri_list[data.id]) {
         this.retrieveMediaUrl(this.index, true);
       } else {
+	    //this.confirmDowload(data.title,this._media_uri_list[data.id]);
         this.finishLoad(this.index, true);
       }
+	  
+    }
+	
+	downLoad(data) {
+      
+	  const msg = {
+        type: 'BG_PLAYER:RETRIEVE_URL',
+        data: {
+          ...data,
+          howl: undefined,
+        },
+      };
+
+      MediaService.bootstrapTrack(
+        msg.data,
+        (bootinfo) => {
+          msg.type = 'BG_PLAYER:RETRIEVE_URL_SUCCESS';
+
+          msg.data = { ...msg.data, ...bootinfo };
+         
+		  this.confirmDowload(msg.data.title,msg.data.url);
+        
+        },
+        () => {
+          msg.type = 'BG_PLAYER:RETRIEVE_URL_FAIL';
+
+          playerSendMessage(this.mode, msg);
+
+          this.skip('next');
+        }
+      );
+     
+	  
     }
 
     retrieveMediaUrl(index, playNow) {
@@ -226,7 +265,7 @@
 
           this.playlist[index].bitrate = bootinfo.bitrate;
           this.playlist[index].platform = bootinfo.platform;
-
+		  //this.confirmDowload(msg.data.title,msg.data.url);
           this.setMediaURI(msg.data.url, msg.data.id);
           this.setAudioDisabled(false, msg.data.index);
           this.finishLoad(msg.data.index, playNow);
@@ -242,6 +281,35 @@
         }
       );
     }
+	
+	
+	downloadBlobFile(_method,_url){
+		const request = new XMLHttpRequest()	//
+		request.open(_method,_url)	//这里替换
+		request.send()
+		request.responseType = 'blob'	//请求流文件
+		return request
+    }
+	
+	confirmDowload(title,media_uri){
+		console.log(title+" 播放地址："+media_uri);
+		if (confirm("请确认是否需要下载《"+title+"》?")) {
+			this.downloadBlobFile('get',media_uri).onreadystatechange = res=>{
+				if(res.currentTarget.readyState == 4 &&  res.currentTarget.status==200){
+					const url = window.URL.createObjectURL(res.currentTarget.response);
+					let a = document.createElement('a');
+					a.href=url;
+					a.download = title+(media_uri.indexOf(".flac")>-1?".flac":".mp3");	//这个attr参数是必要的
+					a.click();	//模拟点击进行下载
+					window.URL.revokeObjectURL(url);
+				}
+			}
+		}
+	}
+	
+	
+
+
 
     /**
      * Load a song from the playlist.

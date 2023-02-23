@@ -215,12 +215,13 @@ const main = () => {
       },
       link(scope, element, attrs) {
         element.bind('click', (event) => {
-          if (isElectron()) {
+          /**if (isElectron()) {
             const { shell } = require('electron');
             shell.openExternal(scope.url);
           } else {
             $window.open(scope.url, '_blank');
-          }
+          }**/
+		  l1Player.downLoadById(scope.$parent.song);
         });
       },
     }),
